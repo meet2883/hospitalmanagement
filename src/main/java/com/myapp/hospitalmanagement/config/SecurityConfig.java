@@ -70,7 +70,7 @@ public class SecurityConfig {
                     .invalidateHttpSession(true)
                     .clearAuthentication(true)
             )
-            .httpBasic(Customizer.withDefaults())
+            .httpBasic(customizer -> customizer.disable())
             .sessionManagement(
                     session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
