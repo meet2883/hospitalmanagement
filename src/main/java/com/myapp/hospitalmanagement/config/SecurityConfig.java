@@ -1,5 +1,8 @@
 package com.myapp.hospitalmanagement.config;
 
+import com.myapp.hospitalmanagement.filter.CustomLogoutHandler;
+import com.myapp.hospitalmanagement.filter.CustomLogoutSuccessHandler;
+import com.myapp.hospitalmanagement.filter.JWTFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,13 +14,10 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -30,10 +30,21 @@ import org.springframework.security.web.SecurityFilterChain;
 * */
 public class SecurityConfig {
     private final UserDetailsService userDetailsService;
+    private final JWTFilter jwtFilter;
+    private final CustomLogoutHandler customLogoutHandler;
+    private final CustomLogoutSuccessHandler customLogoutSuccessHandler;
 
     @Autowired
-    public SecurityConfig(UserDetailsService userDetailsService) {
+    public SecurityConfig(
+            UserDetailsService userDetailsService,
+            JWTFilter jwtFilter,
+            CustomLogoutHandler customLogoutHandler,
+            CustomLogoutSuccessHandler customLogoutSuccessHandler
+    ) {
         this.userDetailsService = userDetailsService;
+        this.jwtFilter = jwtFilter;
+        this.customLogoutHandler = customLogoutHandler;
+        this.customLogoutSuccessHandler = customLogoutSuccessHandler;
     }
 
     @Bean
@@ -41,13 +52,21 @@ public class SecurityConfig {
         http.csrf(customizer -> customizer.disable())
             .authorizeHttpRequests(auth ->
                     auth
-                            .requestMatchers("/api/user/sign-up", "/api/user/sign-in").permitAll()
+                            .requestMatchers("/api/auth/sign-up", "/api/auth/sign-in").permitAll()
                             .anyRequest().authenticated()
             )
+                .logout(logout -> logout
+                        .logoutUrl("/api/auth/logout")
+                        .addLogoutHandler(customLogoutHandler)
+                        .logoutSuccessHandler(customLogoutSuccessHandler)
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                )
             .httpBasic(Customizer.withDefaults())
             .sessionManagement(
                     session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            );
+            )
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
       return http.build();
     }
 

@@ -1,11 +1,12 @@
 package com.myapp.hospitalmanagement.controller;
 
-import com.myapp.hospitalmanagement.entity.Appointment;
 import com.myapp.hospitalmanagement.entity.User;
 import com.myapp.hospitalmanagement.service.JWTService;
 import com.myapp.hospitalmanagement.service.MyUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,9 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import utils.ApiResponse;
 
+import java.time.Duration;
+
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/auth")
 public class UserController {
     private final MyUserDetailsService myUserDetailsService;
     private final AuthenticationManager authenticationManager;
@@ -57,9 +60,25 @@ public class UserController {
             );
             if (authentication.isAuthenticated()) {
                 String token = jwtService.generateToken(user.getName());
-                return ResponseEntity.status(HttpStatus.CREATED).body(
-                    new ApiResponse<>(true, "Logged in successfully", token)
-                );
+
+                ApiResponse response = new ApiResponse<>(true, "Logged in successfully", null);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("Authorization", "Bearer " + token);
+
+                ResponseCookie cookie = ResponseCookie.from("auth_token", token)
+                        .httpOnly(true)
+                        .secure(true)
+                        .path("/")
+                        .maxAge(Duration.ofDays(1))
+                        .sameSite("Strict")
+                        .build();
+                headers.add(HttpHeaders.SET_COOKIE, cookie.toString());
+
+                return ResponseEntity
+                        .status(HttpStatus.OK)
+                        .headers(headers)
+                        .body(response);
             }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     new ApiResponse<>(false, "Logged in failed", null)
