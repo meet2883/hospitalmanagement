@@ -11,6 +11,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -21,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 /*
 * @EnableWebSecurity
 *
@@ -50,18 +52,24 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(customizer -> customizer.disable())
+            .authenticationProvider(authenticationProvider())
             .authorizeHttpRequests(auth ->
                     auth
-                            .requestMatchers("/api/auth/sign-up", "/api/auth/sign-in").permitAll()
+                            .requestMatchers("/api/patient/**").hasAnyRole("EMPLOYEE", "ADMIN")
+                            .requestMatchers("/api/appointment/**").hasAnyRole("EMPLOYEE", "ADMIN")
+                            .requestMatchers("/api/doctor/**").hasAnyRole("ADMIN")
+                            .requestMatchers("/api/insurance/**").hasAnyRole("ADMIN")
+                            .requestMatchers("/api/auth/sign-up").hasRole("ADMIN")
+                            .requestMatchers("/api/auth/sign-in").permitAll()
                             .anyRequest().authenticated()
             )
-                .logout(logout -> logout
-                        .logoutUrl("/api/auth/logout")
-                        .addLogoutHandler(customLogoutHandler)
-                        .logoutSuccessHandler(customLogoutSuccessHandler)
-                        .invalidateHttpSession(true)
-                        .clearAuthentication(true)
-                )
+            .logout(logout -> logout
+                    .logoutUrl("/api/auth/logout")
+                    .addLogoutHandler(customLogoutHandler)
+                    .logoutSuccessHandler(customLogoutSuccessHandler)
+                    .invalidateHttpSession(true)
+                    .clearAuthentication(true)
+            )
             .httpBasic(Customizer.withDefaults())
             .sessionManagement(
                     session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -71,9 +79,14 @@ public class SecurityConfig {
     }
 
     @Bean
+    public BCryptPasswordEncoder bCryptPasswordEncoder() {
+        return new BCryptPasswordEncoder(12);
+    }
+
+    @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-        provider.setPasswordEncoder(new BCryptPasswordEncoder(12));
+        provider.setPasswordEncoder(bCryptPasswordEncoder());
         return provider;
     }
 

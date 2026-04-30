@@ -25,7 +25,7 @@ public class CustomLogoutHandler implements LogoutHandler {
             token = authToken.substring(7);
         }
 
-        if (authToken != "") {
+        if (token != null) {
             Date tokenExpiryDate = jwtService.extractExpiration(token);
             jwtService.blackListToken(token, tokenExpiryDate);
         }
