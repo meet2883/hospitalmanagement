@@ -2,7 +2,6 @@ package com.myapp.hospitalmanagement.entity;
 
 import com.myapp.hospitalmanagement.entity.enumaration.Role;
 import jakarta.persistence.*;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -37,6 +36,6 @@ public class User implements UserDetails{
 
     @Override
     public String getUsername() {
-        return this.name;
+        return this.email;
     }
 }

@@ -1,15 +1,15 @@
 package com.myapp.hospitalmanagement.service;
 
-import com.myapp.hospitalmanagement.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.Authentication;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,12 +20,11 @@ public class JWTService {
     @Autowired
     private MyUserDetailsService myUserDetailsService;
 
-    private SecretKey key = null;
-
+    private final SecretKey key;
     private final Map<String, Date> blacklistTokens = new HashMap<>();
 
-    public JWTService() {
-            key = Jwts.SIG.HS256.key().build();
+    public JWTService(@Value("${jwt.secret}") String jwtSecret) {
+        this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(String username) {

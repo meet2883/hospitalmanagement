@@ -40,12 +40,28 @@ public class JWTFilter extends OncePerRequestFilter {
         String token = null;
         String username = null;
 
+        // Try to get token from Authorization header first
         if (authToken != null && authToken.startsWith("Bearer ")) {
             token = authToken.substring(7);
+        }
+        // If not in header, try to get from cookie
+        else {
+            jakarta.servlet.http.Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (jakarta.servlet.http.Cookie cookie : cookies) {
+                    if ("auth_token".equals(cookie.getName())) {
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (token != null) {
             username = jwtService.extractUsername(token);
         }
 
-        if (jwtService.isTokenBlacklisted(token)) {
+        if (token != null && jwtService.isTokenBlacklisted(token)) {
             ApiResponse<?> apiResponse = new ApiResponse<>(false, "Token is not valid", null);
 
             ObjectMapper mapper = new ObjectMapper();

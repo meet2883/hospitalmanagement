@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,6 +18,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -52,15 +56,22 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(customizer -> customizer.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authenticationProvider(authenticationProvider())
             .authorizeHttpRequests(auth ->
                     auth
-                            .requestMatchers("/api/patient/**").hasAnyRole("EMPLOYEE", "ADMIN")
-                            .requestMatchers("/api/appointment/**").hasAnyRole("EMPLOYEE", "ADMIN")
-                            .requestMatchers("/api/doctor/**").hasAnyRole("ADMIN")
-                            .requestMatchers("/api/insurance/**").hasAnyRole("ADMIN")
-                            .requestMatchers("/api/auth/sign-up").hasRole("ADMIN")
-                            .requestMatchers("/api/auth/sign-in").permitAll()
+                            .requestMatchers(
+                                    "/api/patient/**",
+                                    "/api/appointment/**",
+                                    "/api/doctor/all",
+                                    "/api/insurance/all",
+                                    "/api/auth/sign-in"
+                            ).permitAll()
+                            .requestMatchers(
+                                    "/api/doctor/**",
+                                    "/api/insurance/**",
+                                    "/api/auth/sign-up"
+                            ).hasRole("ADMIN")
                             .anyRequest().authenticated()
             )
             .logout(logout -> logout
@@ -93,6 +104,20 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) {
         return configuration.getAuthenticationManager();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedMethods(List.of("*"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(List.of("Authorization"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
 }

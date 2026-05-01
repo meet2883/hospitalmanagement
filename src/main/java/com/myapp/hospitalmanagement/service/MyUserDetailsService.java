@@ -27,11 +27,17 @@ public class MyUserDetailsService implements UserDetailsService {
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
 
     @Override
-    public UserDetails loadUserByUsername(String name) throws UsernameNotFoundException {
-        User user = userRepository.findByName(name);
+    public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+        // Try to find user by email first (new tokens)
+        User user = userRepository.findByEmail(identifier);
+
+        // If not found, try by name (for backward compatibility with old tokens)
+        if (user == null) {
+            user = userRepository.findByName(identifier);
+        }
 
         if (user == null) {
-            System.out.println("User not found");
+            System.out.println("User not found with identifier: " + identifier);
             throw new UsernameNotFoundException("User not found");
         }
         return new UserPrincipal(user);

@@ -1,6 +1,7 @@
 package com.myapp.hospitalmanagement.controller;
 
 import com.myapp.hospitalmanagement.entity.User;
+import com.myapp.hospitalmanagement.entity.UserPrincipal;
 import com.myapp.hospitalmanagement.service.JWTService;
 import com.myapp.hospitalmanagement.service.MyUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import utils.ApiResponse;
 
 import java.time.Duration;
+import java.util.HashMap;
 
 
 @RestController
@@ -56,22 +59,36 @@ public class UserController {
     public ResponseEntity<ApiResponse<?>> login(@RequestBody User user) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(user.getName(), user.getPassword())
+                new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword())
             );
             if (authentication.isAuthenticated()) {
-                String token = jwtService.generateToken(user.getName());
+                String token = jwtService.generateToken(user.getEmail());
 
-                ApiResponse response = new ApiResponse<>(true, "Logged in successfully", null);
+                UserDetails userData = myUserDetailsService.loadUserByUsername(user.getEmail());
+
+                HashMap<String, String> data = new HashMap<>();
+                data.put("email", user.getEmail());
+                data.put("role", userData.getAuthorities().toString());
+
+                // Get the actual name from UserPrincipal if possible
+                if (userData instanceof UserPrincipal) {
+                    UserPrincipal userPrincipal = (UserPrincipal) userData;
+                    data.put("name", userPrincipal.getUser().getName());
+                }
+
+                ApiResponse<?> response = new ApiResponse<>(true, "Logged in successfully", data);
+
+//                ApiResponse<?> response = new ApiResponse<>(true, "Logged in successfully", data);
 
                 HttpHeaders headers = new HttpHeaders();
                 headers.set("Authorization", "Bearer " + token);
 
                 ResponseCookie cookie = ResponseCookie.from("auth_token", token)
                         .httpOnly(true)
-                        .secure(true)
+                        .secure(false)  // Set to false for HTTP (localhost), change to true for HTTPS production
                         .path("/")
                         .maxAge(Duration.ofDays(1))
-                        .sameSite("Strict")
+                        .sameSite("Lax")  // Changed from Strict to Lax for better cross-site behavior
                         .build();
                 headers.add(HttpHeaders.SET_COOKIE, cookie.toString());
 
