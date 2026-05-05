@@ -25,4 +25,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             """, nativeQuery = true
     )
     List<Map<String, Object>> getAllAppoinments();
+
+    List<Appointment> findByDoctorId(Long id);
 }

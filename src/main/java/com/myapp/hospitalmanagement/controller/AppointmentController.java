@@ -98,4 +98,22 @@ public class AppointmentController {
             );
         }
     }
+
+    @GetMapping("/get-appointment-by-doctor/{id}")
+    public ResponseEntity<ApiResponse<List<Appointment>>> getAppointmentByDoctor(@PathVariable Long id) {
+        try {
+            List<Appointment> appointmentList = appointmentService.getAppointmentByDoctor(id);
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    new ApiResponse<>(true, "Appointment list", appointmentList)
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new ApiResponse<>(false, e.getMessage(), null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>(false, e.getMessage(), null)
+            );
+        }
+    }
 }

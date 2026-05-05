@@ -75,4 +75,8 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(id).orElseThrow(() -> new RuntimeException("Appointment not found"));
         appointmentRepository.delete(appointment);
     }
+
+    public List<Appointment> getAppointmentByDoctor(Long id) {
+        return appointmentRepository.findByDoctorId(id);
+    }
 }
