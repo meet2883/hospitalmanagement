@@ -20,6 +20,7 @@ public class Appointment {
     @Column(name = "date")
     private LocalDateTime appointmentdatetime;
 
+    @Enumerated(EnumType.STRING)
     private AppointmentStatus status;
 
     @ManyToOne

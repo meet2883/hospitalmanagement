@@ -116,4 +116,27 @@ public class AppointmentController {
             );
         }
     }
+
+    @GetMapping("/filter")
+    public ResponseEntity<ApiResponse<List<com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO>>> filterAppointments(
+            @RequestParam(required = false) String date,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long patientId,
+            @RequestParam(required = false) String patientName,
+            @RequestParam(required = false) Long doctorId,
+            @RequestParam(required = false) String doctorName
+    ) {
+        try {
+            List<com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO> appointments = appointmentService.filterAppointments(
+                    date, status, patientId, patientName, doctorId, doctorName
+            );
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    new ApiResponse<>(true, "Filtered appointments", appointments)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>(false, e.getMessage(), null)
+            );
+        }
+    }
 }

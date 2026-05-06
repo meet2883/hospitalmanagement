@@ -3,6 +3,7 @@ package com.myapp.hospitalmanagement.controller;
 import com.myapp.hospitalmanagement.entity.User;
 import com.myapp.hospitalmanagement.entity.UserPrincipal;
 import com.myapp.hospitalmanagement.entity.dto.UserDTO;
+import com.myapp.hospitalmanagement.entity.dto.UserRegistrationDTO;
 import com.myapp.hospitalmanagement.service.JWTService;
 import com.myapp.hospitalmanagement.service.MyUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,11 +46,11 @@ public class UserController {
     }
 
     @PostMapping("/sign-up")
-    public ResponseEntity<ApiResponse<User>> createUser(@RequestBody User user) {
+    public ResponseEntity<ApiResponse<User>> createUser(@RequestBody UserRegistrationDTO userDTO) {
         try {
-            User registerUser = myUserDetailsService.createUser(user);
+            User registerUser = myUserDetailsService.createUser(userDTO);
             return ResponseEntity.status(HttpStatus.CREATED).body(
-                    new ApiResponse<>(true, "User created successfully.", user)
+                    new ApiResponse<>(true, "User created successfully.", registerUser)
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(

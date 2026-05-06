@@ -69,7 +69,8 @@ public class SecurityConfig {
                             ).permitAll()
                             .requestMatchers(
                                     "/api/medical-record/**",
-                                    "/api/appointment/get-appointment-by-doctor/{id}"
+                                    "/api/appointment/get-appointment-by-doctor/{id}",
+                                    "/api/appointment/filter"
                             ).hasAnyRole("DOCTOR")
                             .requestMatchers(
                                     "/api/doctor/**",

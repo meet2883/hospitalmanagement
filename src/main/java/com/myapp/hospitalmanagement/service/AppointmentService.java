@@ -4,15 +4,20 @@ import com.myapp.hospitalmanagement.entity.Appointment;
 import com.myapp.hospitalmanagement.entity.Doctor;
 import com.myapp.hospitalmanagement.entity.Patient;
 import com.myapp.hospitalmanagement.entity.dto.AppointmentUpdateDTO;
+import com.myapp.hospitalmanagement.entity.enumaration.AppointmentStatus;
 import com.myapp.hospitalmanagement.repository.AppointmentRepository;
 import com.myapp.hospitalmanagement.repository.DoctorRepository;
 import com.myapp.hospitalmanagement.repository.PatientRepository;
-import jakarta.transaction.Transactional;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.*;
+import java.util.stream.Stream;
 
 @Service
 public class AppointmentService {
@@ -78,5 +83,102 @@ public class AppointmentService {
 
     public List<Appointment> getAppointmentByDoctor(Long id) {
         return appointmentRepository.findByDoctorId(id);
+    }
+
+    public List<com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO> filterAppointments(
+            String date, String status, Long patientId, String patientName, Long doctorId, String doctorName
+    ) {
+        Specification<Appointment> specification = (root, query, cb) -> {
+            // Fetch patient and doctor to avoid lazy loading issues
+            root.fetch("patient", jakarta.persistence.criteria.JoinType.LEFT);
+            root.fetch("doctor", jakarta.persistence.criteria.JoinType.LEFT);
+
+            List<Predicate> predicates = new ArrayList<>();
+
+            Optional.ofNullable(date).ifPresent(d -> {
+                LocalDate appointmentDate = LocalDate.parse(d);
+
+                LocalDateTime startOfDay = appointmentDate.atStartOfDay();
+                LocalDateTime endOfDay = appointmentDate.atTime(LocalTime.MAX);
+                predicates.add(cb.between(root.get("appointmentdatetime"), startOfDay, endOfDay));
+            });
+
+            Optional.ofNullable(status).ifPresent(s -> {
+                AppointmentStatus parsedStatus = parseStatus(s);
+                predicates.add(cb.equal(root.get("status"), parsedStatus));
+            });
+
+            Optional.ofNullable(patientId).ifPresent(pid ->
+                predicates.add(cb.equal(root.join("patient").get("id"), pid))
+            );
+
+            Optional.ofNullable(patientName).ifPresent(pName ->
+                predicates.add(cb.like(cb.lower(root.join("patient").get("patientName")),
+                        "%" + pName.toLowerCase() + "%"))
+            );
+
+            Optional.ofNullable(doctorId).ifPresent(did ->
+                predicates.add(cb.equal(root.join("doctor").get("id"), did))
+            );
+
+            Optional.ofNullable(doctorName).ifPresent(dName ->
+                predicates.add(cb.like(cb.lower(root.join("doctor").get("name")),
+                        "%" + dName.toLowerCase() + "%"))
+            );
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+       List<Appointment> appointments = appointmentRepository.findAll(specification);
+       return appointments.stream()
+               .map(this::toResponseDTO)
+               .toList();
+    }
+
+    private com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO toResponseDTO(Appointment appointment) {
+        com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO dto = new com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO();
+        dto.setId(appointment.getId());
+        dto.setAppointmentdatetime(appointment.getAppointmentdatetime());
+        dto.setStatus(appointment.getStatus());
+
+        if (appointment.getPatient() != null) {
+            com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO.PatientInfo patientInfo =
+                new com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO.PatientInfo(
+                    appointment.getPatient().getId(),
+                    appointment.getPatient().getPatientName()
+                );
+            dto.setPatient(patientInfo);
+        }
+
+        if (appointment.getDoctor() != null) {
+            com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO.DoctorInfo doctorInfo =
+                new com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO.DoctorInfo(
+                    appointment.getDoctor().getId(),
+                    appointment.getDoctor().getName()
+                );
+            dto.setDoctor(doctorInfo);
+        }
+
+        return dto;
+    }
+
+    private AppointmentStatus parseStatus(String status) {
+        if (status == null) return null;
+
+        try {
+            // Try as enum name first (SCHEDULE, CANCEL, DONE)
+            return AppointmentStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            try {
+                // Try as ordinal (0, 1, 2)
+                int ordinal = Integer.parseInt(status);
+                AppointmentStatus[] values = AppointmentStatus.values();
+                if (ordinal >= 0 && ordinal < values.length) {
+                    return values[ordinal];
+                }
+                throw new IllegalArgumentException("Invalid status ordinal: " + status);
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Invalid status. Use: SCHEDULE, CANCEL, DONE or 0, 1, 2");
+            }
+        }
     }
 }
