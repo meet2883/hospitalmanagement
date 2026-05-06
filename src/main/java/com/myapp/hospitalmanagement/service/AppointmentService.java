@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -96,7 +98,7 @@ public class AppointmentService {
             List<Predicate> predicates = new ArrayList<>();
 
             Optional.ofNullable(date).ifPresent(d -> {
-                LocalDate appointmentDate = LocalDate.parse(d);
+                LocalDate appointmentDate = parseDate(d);
 
                 LocalDateTime startOfDay = appointmentDate.atStartOfDay();
                 LocalDateTime endOfDay = appointmentDate.atTime(LocalTime.MAX);
@@ -180,5 +182,26 @@ public class AppointmentService {
                 throw new IllegalArgumentException("Invalid status. Use: SCHEDULE, CANCEL, DONE or 0, 1, 2");
             }
         }
+    }
+
+    private LocalDate parseDate(String date) {
+        // Try multiple date formats
+        List<DateTimeFormatter> formatters = Arrays.asList(
+            DateTimeFormatter.ofPattern("yyyy-MM-dd"),   // ISO format: 2026-05-10
+            DateTimeFormatter.ofPattern("yyyy/MM/dd"),   // Slash format: 2026/05/10
+            DateTimeFormatter.ofPattern("MM/dd/yyyy"),   // US format: 05/10/2026
+            DateTimeFormatter.ofPattern("dd-MM-yyyy"),   // Day first: 10-05-2026
+            DateTimeFormatter.ofPattern("dd/MM/yyyy")    // Slash day first: 10/05/2026
+        );
+
+        for (DateTimeFormatter formatter : formatters) {
+            try {
+                return LocalDate.parse(date, formatter);
+            } catch (DateTimeParseException e) {
+                // Try next format
+            }
+        }
+
+        throw new IllegalArgumentException("Invalid date format. Supported formats: yyyy-MM-dd, yyyy/MM/dd, MM/dd/yyyy, dd-MM-yyyy, dd/MM/yyyy");
     }
 }
