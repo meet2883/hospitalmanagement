@@ -10,6 +10,7 @@ import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.query.EscapeCharacter;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -82,7 +83,13 @@ public class PatientService {
         patientRepository.delete(existingPatient);
     }
 
-    public List<PatientResponseDTO> filterPatients(String name, String phoneNumber) {
+    public List<PatientResponseDTO> filterPatients(
+            String name,
+            String phoneNumber,
+            String gender,
+            String bloodgroup
+    ) {
+        System.out.println("filters >>>> name :" + name + " phonenumber :" + phoneNumber + " gender :" + gender + " bloodgroup :" + bloodgroup);
         Specification<Patient> specification = (root, query, cb) -> {
             root.fetch("insurance", jakarta.persistence.criteria.JoinType.LEFT);
 
@@ -98,6 +105,20 @@ public class PatientService {
                             "%" + pn.toLowerCase() + "%"))
             );
 
+            Optional.ofNullable(gender).ifPresent(pn ->
+                    predicates.add(cb.like(cb.lower(root.get("gender")), pn.toLowerCase()))
+            );
+
+            Optional.ofNullable(bloodgroup).ifPresent(pn -> {
+                String searchTerm = EscapeCharacter.DEFAULT.escape(bloodgroup);
+                String pattern = "%" + searchTerm + "%";
+
+                predicates.add(cb.equal(
+                        cb.lower(root.get("bloodGroup")),
+                        pattern.toLowerCase()
+                ));
+            });
+
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
 
@@ -110,6 +131,7 @@ public class PatientService {
     private PatientResponseDTO toResponseDTO(Patient patient) {
         PatientResponseDTO dto = new PatientResponseDTO();
         dto.setId(patient.getId());
+        dto.setAge(patient.getAge());
         dto.setPatientName(patient.getPatientName());
         dto.setGender(patient.getGender());
         dto.setPhoneNumber(patient.getPhoneNumber());

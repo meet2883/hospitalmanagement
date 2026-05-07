@@ -116,10 +116,20 @@ public class PatientController {
     @GetMapping("/filter")
     public ResponseEntity<ApiResponse<List<PatientResponseDTO>>> filter(
             @RequestParam(required = false) String name,
-            @RequestParam(required = false) String phoneNumber
+            @RequestParam(required = false) String phoneNumber,
+            @RequestParam(required = false) String gender,
+            @RequestParam(required = false) String bloodgroup,
+            @RequestParam(required = false) Integer minage,
+            @RequestParam(required = false) Integer maxage,
+            @RequestParam(required = false) Boolean hasinsurance
     ) {
         try {
-            List<PatientResponseDTO> patients = patientService.filterPatients(name, phoneNumber);
+            List<PatientResponseDTO> patients = patientService.filterPatients(
+                    name,
+                    phoneNumber,
+                    gender,
+                    bloodgroup
+            );
             return ResponseEntity.status(HttpStatus.OK).body(
                     new ApiResponse<>(true, "Filtered patients", patients)
             );

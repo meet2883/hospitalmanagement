@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PatientResponseDTO {
     private Long id;
+    private Integer age;
     private String patientName;
     private String gender;
     private String phoneNumber;
