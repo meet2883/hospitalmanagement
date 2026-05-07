@@ -2,13 +2,18 @@ package com.myapp.hospitalmanagement.service;
 
 import com.myapp.hospitalmanagement.entity.Insurance;
 import com.myapp.hospitalmanagement.entity.Patient;
+import com.myapp.hospitalmanagement.entity.dto.PatientResponseDTO;
 import com.myapp.hospitalmanagement.entity.dto.PatientUpdateDTO;
 import com.myapp.hospitalmanagement.repository.InsuranceRepository;
 import com.myapp.hospitalmanagement.repository.PatientRepository;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -75,5 +80,49 @@ public class PatientService {
     public void removePatient(Long id) {
         Patient existingPatient = patientRepository.findById(id).orElseThrow(() -> new RuntimeException("Patient not found"));
         patientRepository.delete(existingPatient);
+    }
+
+    public List<PatientResponseDTO> filterPatients(String name, String phoneNumber) {
+        Specification<Patient> specification = (root, query, cb) -> {
+            root.fetch("insurance", jakarta.persistence.criteria.JoinType.LEFT);
+
+            List<Predicate> predicates = new ArrayList<>();
+
+            Optional.ofNullable(name).ifPresent(pName ->
+                    predicates.add(cb.like(cb.lower(root.get("patientName")),
+                            "%" + pName.toLowerCase() + "%"))
+            );
+
+            Optional.ofNullable(phoneNumber).ifPresent(pn ->
+                    predicates.add(cb.like(cb.lower(root.get("phoneNumber")),
+                            "%" + pn.toLowerCase() + "%"))
+            );
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        List<Patient> patientList = patientRepository.findAll(specification);
+        return patientList.stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
+    private PatientResponseDTO toResponseDTO(Patient patient) {
+        PatientResponseDTO dto = new PatientResponseDTO();
+        dto.setId(patient.getId());
+        dto.setPatientName(patient.getPatientName());
+        dto.setGender(patient.getGender());
+        dto.setPhoneNumber(patient.getPhoneNumber());
+        dto.setBloodGroup(patient.getBloodGroup());
+
+        if (patient.getInsurance() != null) {
+            PatientResponseDTO.InsuranceInfo insuranceInfo = new PatientResponseDTO.InsuranceInfo(
+                    patient.getInsurance().getId(),
+                    patient.getInsurance().getPolicyName()
+            );
+            dto.setInsurance(insuranceInfo);
+        }
+
+        return dto;
     }
 }

@@ -1,6 +1,7 @@
 package com.myapp.hospitalmanagement.controller;
 
 import com.myapp.hospitalmanagement.entity.Patient;
+import com.myapp.hospitalmanagement.entity.dto.PatientResponseDTO;
 import com.myapp.hospitalmanagement.entity.dto.PatientUpdateDTO;
 import com.myapp.hospitalmanagement.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,6 +105,23 @@ public class PatientController {
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                     new ApiResponse<>(false, e.getMessage(), null)
+            );
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>(false, e.getMessage(), null)
+            );
+        }
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<ApiResponse<List<PatientResponseDTO>>> filter(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String phoneNumber
+    ) {
+        try {
+            List<PatientResponseDTO> patients = patientService.filterPatients(name, phoneNumber);
+            return ResponseEntity.status(HttpStatus.OK).body(
+                    new ApiResponse<>(true, "Filtered patients", patients)
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
