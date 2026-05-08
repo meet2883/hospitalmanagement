@@ -3,8 +3,10 @@ package com.myapp.hospitalmanagement.service;
 import com.myapp.hospitalmanagement.entity.Appointment;
 import com.myapp.hospitalmanagement.entity.Doctor;
 import com.myapp.hospitalmanagement.entity.Patient;
+import com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO;
 import com.myapp.hospitalmanagement.entity.dto.AppointmentUpdateDTO;
 import com.myapp.hospitalmanagement.entity.enumaration.AppointmentStatus;
+import com.myapp.hospitalmanagement.entity.enumaration.AppointmentType;
 import com.myapp.hospitalmanagement.repository.AppointmentRepository;
 import com.myapp.hospitalmanagement.repository.DoctorRepository;
 import com.myapp.hospitalmanagement.repository.PatientRepository;
@@ -48,6 +50,21 @@ public class AppointmentService {
         return appointmentRepository.save(appointment);
     }
 
+    public AppointmentResponseDTO createAppointmentDTO(Appointment appointment, Long patientId, Long doctorId) {
+        Appointment created = createAppointment(appointment, patientId, doctorId);
+        return toResponseDTO(created);
+    }
+
+    public Optional<Appointment> getAppointmentById(Long appointmentId) {
+      return appointmentRepository.findById(appointmentId);
+    }
+
+    public AppointmentResponseDTO getAppointmentDTOById(Long appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new RuntimeException("Appointment not found with id: " + appointmentId));
+        return toResponseDTO(appointment);
+    }
+
     public List<Map<String, Object>> getAllAppoinments() {
         return appointmentRepository.getAllAppoinments();
     }
@@ -64,6 +81,10 @@ public class AppointmentService {
             appointment.setStatus(appointmentDto.getStatus());
         }
 
+        if (appointmentDto.getType() != null) {
+            appointment.setType(appointmentDto.getType());
+        }
+
         if (appointmentDto.getPatientId() != null) {
             Patient patient = patientRepository.findById(appointmentDto.getPatientId())
                                                 .orElseThrow(() -> new RuntimeException("Patient not found."));
@@ -78,6 +99,11 @@ public class AppointmentService {
         return appointmentRepository.save(appointment);
     }
 
+    public AppointmentResponseDTO updateAppointmentDTO(AppointmentUpdateDTO appointmentDto, Long id) {
+        Appointment updated = updateAppointmentStatus(appointmentDto, id);
+        return toResponseDTO(updated);
+    }
+
     public void deleteAppointment(Long id) {
         Appointment appointment = appointmentRepository.findById(id).orElseThrow(() -> new RuntimeException("Appointment not found"));
         appointmentRepository.delete(appointment);
@@ -87,8 +113,15 @@ public class AppointmentService {
         return appointmentRepository.findByDoctorId(id);
     }
 
+    public List<AppointmentResponseDTO> getAppointmentsDTOByDoctor(Long doctorId) {
+        List<Appointment> appointments = appointmentRepository.findByDoctorId(doctorId);
+        return appointments.stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
     public List<com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO> filterAppointments(
-            String date, String status, Long patientId, String patientName, Long doctorId, String doctorName
+            String date, String status, Long patientId, String patientName, Long doctorId, String doctorName, String type
     ) {
         Specification<Appointment> specification = (root, query, cb) -> {
             // Fetch patient and doctor to avoid lazy loading issues
@@ -108,6 +141,11 @@ public class AppointmentService {
             Optional.ofNullable(status).ifPresent(s -> {
                 AppointmentStatus parsedStatus = parseStatus(s);
                 predicates.add(cb.equal(root.get("status"), parsedStatus));
+            });
+
+            Optional.ofNullable(type).ifPresent(s -> {
+                AppointmentType parsedType = parseType(s);
+                predicates.add(cb.equal(root.get("type"), parsedType));
             });
 
             Optional.ofNullable(patientId).ifPresent(pid ->
@@ -141,6 +179,7 @@ public class AppointmentService {
         dto.setId(appointment.getId());
         dto.setAppointmentdatetime(appointment.getAppointmentdatetime());
         dto.setStatus(appointment.getStatus());
+        dto.setType(appointment.getType());
 
         if (appointment.getPatient() != null) {
             com.myapp.hospitalmanagement.entity.dto.AppointmentResponseDTO.PatientInfo patientInfo =
@@ -180,6 +219,26 @@ public class AppointmentService {
                 throw new IllegalArgumentException("Invalid status ordinal: " + status);
             } catch (NumberFormatException ex) {
                 throw new IllegalArgumentException("Invalid status. Use: SCHEDULE, CANCEL, DONE or 0, 1, 2");
+            }
+        }
+    }
+
+    private AppointmentType parseType(String type) {
+        if (type == null) return null;
+
+        try {
+            return AppointmentType.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            try {
+                // Try as ordinal (0, 1, 2)
+                int ordinal = Integer.parseInt(type);
+                AppointmentType[] values = AppointmentType.values();
+                if (ordinal >= 0 && ordinal < values.length) {
+                    return values[ordinal];
+                }
+                throw new IllegalArgumentException("Invalid type ordinal: " + type);
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Invalid type");
             }
         }
     }

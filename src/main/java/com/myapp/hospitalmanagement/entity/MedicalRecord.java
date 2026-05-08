@@ -15,7 +15,7 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
-@ToString
+@ToString(exclude = {"prescriptions"})
 @EntityListeners(AuditingEntityListener.class)
 public class MedicalRecord {
     @Id
@@ -23,7 +23,11 @@ public class MedicalRecord {
     private Long id;
 
     @OneToOne
-    @JoinColumn(name = "patient_id", nullable = false, unique = true)
+    @JoinColumn(name = "appointment_id", nullable = false, unique = true)
+    private Appointment appointment;
+
+    @ManyToOne
+    @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
     @ManyToOne
@@ -44,10 +48,9 @@ public class MedicalRecord {
     private List<Prescription> prescriptions = new ArrayList<>();
 
     @CreatedDate
-    @Column(updatable = false, nullable = false)
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedDate
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
 }

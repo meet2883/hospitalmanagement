@@ -34,7 +34,7 @@ public class Prescription {
     private String instructions;
 
     @CreatedDate
-    @Column(updatable = false, nullable = false)
+    @Column(updatable = false)
     private LocalDateTime prescribedAt;
 
     @Enumerated(EnumType.STRING)

@@ -10,6 +10,8 @@ import java.util.List;
 @Setter
 public class MedicalRecordDTO {
     private Long id;
+    private Long appointmentId;
+    private LocalDateTime appointmentDateTime;
     private Long patientId;
     private String patientName;
     private Long doctorId;
