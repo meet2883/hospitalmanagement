@@ -41,6 +41,22 @@ public class AppointmentService {
     }
 
     public Appointment createAppointment(Appointment appointment, Long patientId, Long doctorId) {
+        List<Appointment> appointmentList = appointmentRepository.findAll();
+
+        LocalDateTime scheduleDate = appointment.getAppointmentdatetime();
+
+        LocalDateTime currentDate = LocalDateTime.now();
+
+        if (scheduleDate.isBefore(currentDate)) {
+            throw new RuntimeException("Date time must be today date or future date");
+        }
+
+        for (Appointment item: appointmentList) {
+            LocalDateTime itemDate = item.getAppointmentdatetime();
+            if (itemDate.equals(scheduleDate)) {
+                throw new RuntimeException("Appointment is already schedule for this date time.");
+            }
+        }
         Patient patient = patientRepository.findById(patientId).orElseThrow(() -> new RuntimeException("Patient not found"));
 
         Doctor doctor = doctorRepository.findById(doctorId).orElseThrow(() -> new RuntimeException("Doctor not found"));

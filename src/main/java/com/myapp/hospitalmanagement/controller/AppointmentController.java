@@ -57,6 +57,10 @@ public class AppointmentController {
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new ApiResponse<>(true, "Appointment created successfully.", res)
             );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                    new ApiResponse<>(false, e.getMessage(), null)
+            );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                     new ApiResponse<>(false, e.getMessage(), null)
