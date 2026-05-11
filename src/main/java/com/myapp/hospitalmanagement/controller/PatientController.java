@@ -118,10 +118,7 @@ public class PatientController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String phoneNumber,
             @RequestParam(required = false) String gender,
-            @RequestParam(required = false) String bloodgroup,
-            @RequestParam(required = false) Integer minage,
-            @RequestParam(required = false) Integer maxage,
-            @RequestParam(required = false) Boolean hasinsurance
+            @RequestParam(required = false) String bloodgroup
     ) {
         try {
             List<PatientResponseDTO> patients = patientService.filterPatients(

@@ -1,6 +1,8 @@
 package com.myapp.hospitalmanagement.entity.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
@@ -13,5 +15,14 @@ public class PatientUpdateDTO {
     private String address;
     private Integer age;
     private LocalDate dateOfBirth;
-    private Long insuranceId;
+    private InsuranceInfo insurance;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class InsuranceInfo {
+        private Long id;
+        private String policyName;
+        private String policyProvider;
+    }
 }

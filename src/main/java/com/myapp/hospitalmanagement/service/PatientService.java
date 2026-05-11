@@ -69,9 +69,9 @@ public class PatientService {
         if (dto.getDateOfBirth() != null) {
             patient.setDateOfBirth(dto.getDateOfBirth());
         }
-        if (dto.getInsuranceId() != null) {
+        if (dto.getInsurance().getId() != null) {
             Insurance insurance = insuranceRepository
-                                    .findById(dto.getInsuranceId())
+                                    .findById(dto.getInsurance().getId())
                                     .orElseThrow(() -> new RuntimeException("Insurance not found with this Id."));
             patient.setInsurance(insurance);
         }
@@ -89,7 +89,6 @@ public class PatientService {
             String gender,
             String bloodgroup
     ) {
-        System.out.println("filters >>>> name :" + name + " phonenumber :" + phoneNumber + " gender :" + gender + " bloodgroup :" + bloodgroup);
         Specification<Patient> specification = (root, query, cb) -> {
             root.fetch("insurance", jakarta.persistence.criteria.JoinType.LEFT);
 
