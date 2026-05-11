@@ -5,6 +5,8 @@ import com.myapp.hospitalmanagement.entity.dto.PatientResponseDTO;
 import com.myapp.hospitalmanagement.entity.dto.PatientUpdateDTO;
 import com.myapp.hospitalmanagement.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,9 +39,15 @@ public class PatientController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<ApiResponse<List<Patient>>> getAllPatient() {
+    public ResponseEntity<ApiResponse<Page<Patient>>> getAllPatient(
+            @RequestParam(value = "pageNum", required = false) Integer pageNum,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize
+    ) {
         try {
-            List<Patient> patientList = patientService.getAllPatient();
+            if (pageNum == null) pageNum = 0;
+            if (pageSize == null) pageSize = 5;
+
+            Page<Patient> patientList = patientService.getAllPatient(PageRequest.of(pageNum, pageSize));
             String message = patientList.isEmpty()
                                 ? "No patients found"
                                 : "Patient list fetched successfully";
@@ -114,18 +122,24 @@ public class PatientController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<List<PatientResponseDTO>>> filter(
+    public ResponseEntity<ApiResponse<Page<PatientResponseDTO>>> filter(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String phoneNumber,
             @RequestParam(required = false) String gender,
-            @RequestParam(required = false) String bloodgroup
+            @RequestParam(required = false) String bloodgroup,
+            @RequestParam(value = "pageNum", required = false) Integer pageNum,
+            @RequestParam(value = "pageSize", required = false) Integer pageSize
     ) {
         try {
-            List<PatientResponseDTO> patients = patientService.filterPatients(
+            if (pageNum == null) pageNum = 0;
+            if (pageSize == null) pageSize = 5;
+
+            Page<PatientResponseDTO> patients =  patientService.filterPatients(
                     name,
                     phoneNumber,
                     gender,
-                    bloodgroup
+                    bloodgroup,
+                    PageRequest.of(pageNum, pageSize)
             );
             return ResponseEntity.status(HttpStatus.OK).body(
                     new ApiResponse<>(true, "Filtered patients", patients)

@@ -8,6 +8,8 @@ import com.myapp.hospitalmanagement.repository.InsuranceRepository;
 import com.myapp.hospitalmanagement.repository.PatientRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.query.EscapeCharacter;
@@ -37,8 +39,8 @@ public class PatientService {
         return patientRepository.save(patient);
     }
 
-    public List<Patient> getAllPatient() {
-        return patientRepository.findAll();
+    public Page<Patient> getAllPatient(PageRequest pageRequest) {
+        return patientRepository.findAll(pageRequest);
     }
 
     public Optional<Patient> getPatientById(Long id) {
@@ -83,14 +85,16 @@ public class PatientService {
         patientRepository.delete(existingPatient);
     }
 
-    public List<PatientResponseDTO> filterPatients(
+    public Page<PatientResponseDTO> filterPatients(
             String name,
             String phoneNumber,
             String gender,
-            String bloodgroup
+            String bloodgroup,
+            PageRequest pageRequest
     ) {
         Specification<Patient> specification = (root, query, cb) -> {
-            root.fetch("insurance", jakarta.persistence.criteria.JoinType.LEFT);
+            // Removed fetch here - it causes issues with pagination
+            // EntityGraph will be used instead via custom repository method
 
             List<Predicate> predicates = new ArrayList<>();
 
@@ -121,10 +125,9 @@ public class PatientService {
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
 
-        List<Patient> patientList = patientRepository.findAll(specification);
-        return patientList.stream()
-                .map(this::toResponseDTO)
-                .toList();
+        // Use custom repository method that applies EntityGraph
+        Page<Patient> patientList = patientRepository.findAllWithInsurance(specification, pageRequest);
+        return patientList.map(this::toResponseDTO);
     }
 
     private PatientResponseDTO toResponseDTO(Patient patient) {
