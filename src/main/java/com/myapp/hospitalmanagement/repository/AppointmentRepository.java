@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -40,4 +41,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long>,
 
     @Query("SELECT a FROM Appointment a LEFT JOIN FETCH a.medicalRecord WHERE a.id = :id")
     Optional<Appointment> findByIdWithMedicalRecord(@Param("id") Long id);
+
+    @Query("SELECT COUNT(a) > 0 FROM Appointment a WHERE a.appointmentdatetime = :date")
+    Boolean isAppointmentExistWithDateTime(@Param("date")LocalDateTime date);
 }
