@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @ToString
 @Getter
@@ -21,7 +24,7 @@ public class Insurance {
     @Column(name = "policyprovider")
     private String policyProvider;
 
-    @OneToOne(mappedBy = "insurance", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "insurance", cascade = CascadeType.ALL)
     @JsonIgnore
-    private Patient patient;
+    private List<Patient> patient = new ArrayList<>();
 }

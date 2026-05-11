@@ -39,8 +39,8 @@ public class Patient {
     @Column(name = "dateofbirth")
     private LocalDate dateOfBirth;
 
-    @OneToOne(cascade = CascadeType.DETACH, fetch = FetchType.LAZY)
-    @JoinColumn(name = "insurance_id", referencedColumnName = "id")
+    @ManyToOne
+    @JoinColumn(name = "insurance_id")
     private Insurance insurance;
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL)
