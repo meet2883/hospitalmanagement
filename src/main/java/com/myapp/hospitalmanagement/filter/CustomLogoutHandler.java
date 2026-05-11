@@ -1,6 +1,7 @@
 package com.myapp.hospitalmanagement.filter;
 
 import com.myapp.hospitalmanagement.service.JWTService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.Nullable;
@@ -9,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.Date;
 
 @Component
@@ -18,16 +20,22 @@ public class CustomLogoutHandler implements LogoutHandler {
 
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response, @Nullable Authentication authentication) {
-        String token = null;
-        String authToken = request.getHeader("Authorization");
+        jakarta.servlet.http.Cookie[] cookies = request.getCookies();
 
-        if (authToken != null && authToken.startsWith("Bearer ")) {
-            token = authToken.substring(7);
-        }
+        if (cookies != null) {
+            for (Cookie cookie: cookies) {
+                if ("AUTH-TOKEN".equals(cookie.getName())) {
+                    String token = cookie.getValue();
 
-        if (token != null) {
-            Date tokenExpiryDate = jwtService.extractExpiration(token);
-            jwtService.blackListToken(token, tokenExpiryDate);
+                    Date tokenExpiryDate = jwtService.extractExpiration(token);
+                    jwtService.blackListToken(token, tokenExpiryDate);
+
+                    cookie.setValue(null);
+                    cookie.setMaxAge(0);
+                    cookie.setPath("/");
+                    response.addCookie(cookie);
+                }
+            }
         }
     }
 }
