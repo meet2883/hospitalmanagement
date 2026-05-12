@@ -6,7 +6,11 @@ import com.myapp.hospitalmanagement.entity.dto.UserDTO;
 import com.myapp.hospitalmanagement.entity.dto.UserRegistrationDTO;
 import com.myapp.hospitalmanagement.service.JWTService;
 import com.myapp.hospitalmanagement.service.MyUserDetailsService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -17,13 +21,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import utils.ApiResponse;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashMap;
 
 
@@ -33,16 +35,19 @@ public class UserController {
     private final MyUserDetailsService myUserDetailsService;
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
+    private final ApplicationContext applicationContext;
 
     @Autowired
     public UserController(
             AuthenticationManager authenticationManager,
             MyUserDetailsService myUserDetailsService,
-            JWTService jwtService
+            JWTService jwtService,
+            ApplicationContext applicationContext
     ) {
         this.authenticationManager = authenticationManager;
         this.myUserDetailsService = myUserDetailsService;
         this.jwtService = jwtService;
+        this.applicationContext = applicationContext;
     }
 
     @PostMapping("/sign-up")
@@ -116,5 +121,81 @@ public class UserController {
                     new ApiResponse<>(false, e.getMessage(), null)
             );
         }
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<ApiResponse<Page<UserDTO>>> getUsers(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) Integer pageNum,
+            @RequestParam(required = false) Integer pageSize
+    ) {
+        try {
+            if (pageNum == null) pageNum = 0;
+            if (pageSize == null) pageSize = 5;
+
+            Page<UserDTO> users = myUserDetailsService.filterUsers(
+                    PageRequest.of(pageNum, pageSize), email, name, role
+            );
+
+            return ResponseEntity.status(HttpStatus.OK).body(
+              new ApiResponse<>(true, "Users data", users)
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new ApiResponse<>(false, e.getMessage(), null)
+            );
+        }
+    }
+
+    @PostMapping("/me")
+    public ResponseEntity<ApiResponse<?>> verifyToken(HttpServletRequest request) {
+        String token = extractTokenFromCookies(request);
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                     new ApiResponse<>(false, "No token found", null)
+            );
+        }
+
+        String username = jwtService.extractUsername(token);
+        if (username == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                    new ApiResponse<>(false, "Invalid token", null)
+            );
+        }
+
+        UserDetails userDetails = myUserDetailsService.loadUserByUsername(username);
+
+        if (!jwtService.isTokenValid(token, userDetails)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                    new ApiResponse<>(false, "Token expired or invalid", null)
+            );
+        }
+
+        UserDTO user = new UserDTO();
+        if (userDetails instanceof UserPrincipal) {
+            UserPrincipal userPrincipal = (UserPrincipal) userDetails;
+            user.setId(userPrincipal.getUser().getId());
+            user.setName(userPrincipal.getUser().getName());
+            user.setEmail(userPrincipal.getUser().getEmail());
+            user.setRole(userPrincipal.getUser().getRole());
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body(
+                new ApiResponse<>(true, "User retirived successfully", user)
+        );
+    }
+
+    private String extractTokenFromCookies(HttpServletRequest request) {
+        jakarta.servlet.http.Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (jakarta.servlet.http.Cookie cookie : cookies) {
+                if ("auth_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 }

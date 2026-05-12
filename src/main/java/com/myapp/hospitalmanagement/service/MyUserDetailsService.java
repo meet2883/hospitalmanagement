@@ -2,16 +2,25 @@ package com.myapp.hospitalmanagement.service;
 
 import com.myapp.hospitalmanagement.entity.User;
 import com.myapp.hospitalmanagement.entity.UserPrincipal;
+import com.myapp.hospitalmanagement.entity.dto.UserDTO;
 import com.myapp.hospitalmanagement.entity.dto.UserRegistrationDTO;
 import com.myapp.hospitalmanagement.entity.enumaration.Role;
 import com.myapp.hospitalmanagement.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.query.EscapeCharacter;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class MyUserDetailsService implements UserDetailsService {
@@ -76,5 +85,37 @@ public class MyUserDetailsService implements UserDetailsService {
         }
 
         return savedUser;
+    }
+
+    public Page<UserDTO> filterUsers(PageRequest pageRequest, String email, String name, String role) {
+        Specification<User> specification = (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+
+            Optional.ofNullable(name).ifPresent(username ->
+                    predicates.add(cb.like(cb.lower(root.get("name")), "%" + username.toLowerCase() + "%"))
+            );
+
+            Optional.ofNullable(email).ifPresent(useremail ->
+                    predicates.add(cb.like(cb.lower(root.get("email")), "%" + useremail.toLowerCase() + "%"))
+            );
+
+            Optional.ofNullable(role).ifPresent(userrole -> {
+                predicates.add(cb.equal(root.get("role"), userrole));
+            });
+
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+
+        Page<User> userList = userRepository.findAllUser(specification, pageRequest);
+        return userList.map(this::toResponseDTO);
+    }
+
+    private UserDTO toResponseDTO(User user) {
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setRole(user.getRole());
+        dto.setName(user.getName());
+        dto.setEmail(user.getEmail());
+        return dto;
     }
 }

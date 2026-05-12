@@ -24,7 +24,7 @@ public class CustomLogoutHandler implements LogoutHandler {
 
         if (cookies != null) {
             for (Cookie cookie: cookies) {
-                if ("AUTH-TOKEN".equals(cookie.getName())) {
+                if ("auth_token".equals(cookie.getName())) {
                     String token = cookie.getValue();
 
                     Date tokenExpiryDate = jwtService.extractExpiration(token);
