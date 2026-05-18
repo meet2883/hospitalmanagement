@@ -68,16 +68,15 @@ public class SecurityConfig {
                                     "/api/auth/sign-in"
                             ).permitAll()
                             .requestMatchers(
-                                    "/api/medical-record/**",
                                     "/api/appointment/get-appointment-by-doctor/{id}",
                                     "/api/appointment/filter"
                             ).hasAnyRole("DOCTOR")
                             .requestMatchers(
                                     "/api/doctor/**",
                                     "/api/insurance/**",
-                                    "/api/auth/sign-up",
-                                    "/api/medical-record/**"
+                                    "/api/auth/sign-up"
                             ).hasRole("ADMIN")
+                            .requestMatchers("/api/medical-record/**").hasAnyRole("ADMIN", "DOCTOR")
                             .anyRequest().authenticated()
             )
             .logout(logout -> logout
