@@ -1,6 +1,7 @@
 package com.myapp.hospitalmanagement.controller;
 
 import com.myapp.hospitalmanagement.entity.Patient;
+import com.myapp.hospitalmanagement.entity.dto.PaginationResponseDTO;
 import com.myapp.hospitalmanagement.entity.dto.PatientResponseDTO;
 import com.myapp.hospitalmanagement.entity.dto.PatientUpdateDTO;
 import com.myapp.hospitalmanagement.service.PatientService;
@@ -11,8 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import utils.ApiResponse;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/patient")
@@ -39,7 +38,7 @@ public class PatientController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<ApiResponse<Page<Patient>>> getAllPatient(
+    public ResponseEntity<ApiResponse<PaginationResponseDTO<Patient>>> getAllPatient(
             @RequestParam(value = "pageNum", required = false) Integer pageNum,
             @RequestParam(value = "pageSize", required = false) Integer pageSize
     ) {
@@ -52,8 +51,10 @@ public class PatientController {
                                 ? "No patients found"
                                 : "Patient list fetched successfully";
 
+            PaginationResponseDTO<Patient> response = PaginationResponseDTO.from(patientList);
+
             return ResponseEntity.status(HttpStatus.OK).body(
-                    new ApiResponse<>(true, message, patientList)
+                    new ApiResponse<>(true, message, response)
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
@@ -122,7 +123,7 @@ public class PatientController {
     }
 
     @GetMapping("/filter")
-    public ResponseEntity<ApiResponse<Page<PatientResponseDTO>>> filter(
+    public ResponseEntity<ApiResponse<PaginationResponseDTO<PatientResponseDTO>>> filter(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String phoneNumber,
             @RequestParam(required = false) String gender,
@@ -141,8 +142,14 @@ public class PatientController {
                     bloodgroup,
                     PageRequest.of(pageNum, pageSize)
             );
+
+            PaginationResponseDTO<PatientResponseDTO> pageData = PaginationResponseDTO.from(patients);
             return ResponseEntity.status(HttpStatus.OK).body(
-                    new ApiResponse<>(true, "Filtered patients", patients)
+                    new ApiResponse<>(
+                            true,
+                            "Filtered patients",
+                            pageData
+                    )
             );
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
