@@ -82,7 +82,6 @@ public class PatientController {
             );
         }
     }
-
     @PutMapping("/update/{id}")
     public ResponseEntity<ApiResponse<?>> updatePatient(
             @PathVariable Long id,
@@ -121,7 +120,6 @@ public class PatientController {
             );
         }
     }
-
     @GetMapping("/filter")
     public ResponseEntity<ApiResponse<PaginationResponseDTO<PatientResponseDTO>>> filter(
             @RequestParam(required = false) String name,

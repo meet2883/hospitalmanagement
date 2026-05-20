@@ -8,6 +8,9 @@ import com.myapp.hospitalmanagement.repository.InsuranceRepository;
 import com.myapp.hospitalmanagement.repository.PatientRepository;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -47,6 +50,7 @@ public class PatientService {
         return patientRepository.findById(id);
     }
 
+    @CacheEvict(value = "patients", allEntries = true)
     public Patient updatePatient(PatientUpdateDTO dto, Long id) {
         Patient patient = patientRepository.findById(id).orElseThrow(() -> new RuntimeException("Patient not found"));
 
@@ -85,6 +89,11 @@ public class PatientService {
         patientRepository.delete(existingPatient);
     }
 
+    @Cacheable(
+            value = "patients",
+            key = "#name + '-' + #phoneNumber + '-' + #gender + '-' + #bloodgroup + '-' + #pageRequest.pageNumber + '-' + #pageRequest.pageSize",
+            unless = "#result == null || #result.isEmpty() || #result.hasError()"
+    )
     public Page<PatientResponseDTO> filterPatients(
             String name,
             String phoneNumber,

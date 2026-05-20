@@ -35,6 +35,6 @@ public class Appointment {
     @JoinColumn(name = "doctor_id", nullable = false)
     private Doctor doctor;
 
-    @OneToOne(mappedBy = "appointment", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "appointment", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private MedicalRecord medicalRecord;
 }
